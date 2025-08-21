@@ -3,13 +3,15 @@ local Component = require("compose.src.core.Component")
 local Row = Component:new()
 Row.__index = Row
 
+--- Creates a new Row instance.
+--- @param props table A table of properties for the component.
+--- @return table A new Row instance.
 function Row:new(props)
   local instance = Component:new(props)
   setmetatable(instance, self)
   instance.horizontalArrangement = props.horizontalArrangement or props._compose.Arrangement.Start
   instance.verticalAlignment = props.verticalAlignment or props._compose.VerticalAlignment.Top
 
-  -- Intrinsic size calculation
   local maxChildHeight = 0
   local totalChildrenWidth = 0
   for _, child in ipairs(instance.children) do
@@ -27,6 +29,12 @@ function Row:new(props)
   return instance
 end
 
+--- Draws the component on the screen.
+--- @param x number The x coordinate to draw at.
+--- @param y number The y coordinate to draw at.
+--- @param monitor table The monitor to draw on.
+--- @param availableWidth number The available width for the component.
+--- @param availableHeight number The available height for the component.
 function Row:draw(x, y, monitor, availableWidth, availableHeight)
   self.x = x
   self.y = y
@@ -35,11 +43,9 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
   local padding = modifier.properties.padding or {left = 0, top = 0, right = 0, bottom = 0}
   local border = modifier.properties.border or {width = 0, color = nil}
 
-  -- Determine the size of this Row
   self.width = modifier.properties.fillMaxWidth and availableWidth or 0
   self.height = modifier.properties.fillMaxHeight and availableHeight or 0
 
-  -- If not filling max size, calculate size based on children (intrinsic size)
   if not modifier.properties.fillMaxWidth or not modifier.properties.fillMaxHeight then
     local maxChildHeight = 0
     local totalChildrenWidth = 0
@@ -55,7 +61,6 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
     end
   end
 
-  -- Draw background and border
   local originalBackground = monitor.getBackgroundColor()
   local effectiveBackground = self.backgroundColor or modifier.properties.backgroundColor
   if effectiveBackground then
@@ -66,13 +71,11 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
     end
   end
 
-  -- Layout and draw children
   local innerX = x + padding.left + border.width
   local innerY = y + padding.top + border.width
   local innerWidth = self.width - padding.left - padding.right - (border.width * 2)
   local innerHeight = self.height - padding.top - padding.bottom - (border.width * 2)
 
-  -- 1. Pre-calculate child widths and total width
   local nonFillWidth = 0
   local fillCount = 0
   for _, child in ipairs(self.children) do
@@ -95,7 +98,6 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
     totalChildrenWidth = totalChildrenWidth + childWidth
   end
 
-  -- 2. Calculate spacing based on arrangement
   local remainingSpace = innerWidth - totalChildrenWidth
   local spacePerItem = 0
   local startOffset = 0
@@ -114,7 +116,6 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
     spacePerItem = self.props.spacing or 0
   end
 
-  -- 3. Draw children with correct spacing
   local currentX = innerX + startOffset
   for i, child in ipairs(self.children) do
     local childWidth = (child.modifier and child.modifier.properties.fillMaxWidth) and fillWidth or (child.width or 0)
@@ -142,7 +143,6 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
     currentX = currentX + childWidth + gap
   end
 
-  -- Restore original background color AFTER children have been drawn
   if effectiveBackground then
     monitor.setBackgroundColor(originalBackground)
   end
@@ -152,6 +152,8 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
   end
 end
 
+--- Returns the size of the component.
+--- @return table A table containing the width and height of the component.
 function Row:getSize()
   return { width = self.width, height = self.height }
 end

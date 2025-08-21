@@ -1,8 +1,10 @@
--- src/core/State.lua
 local State = {}
 State.__index = State
 
--- Helper function for deep table comparison
+--- Performs a deep comparison of two tables.
+--- @param t1 table The first table.
+--- @param t2 table The second table.
+--- @return boolean True if the tables are equal, false otherwise.
 local function deepEqual(t1, t2)
   if type(t1) ~= "table" or type(t2) ~= "table" then return t1 == t2 end
 
@@ -19,6 +21,10 @@ local function deepEqual(t1, t2)
   return true
 end
 
+--- Creates a new State instance.
+--- @param initialValue any The initial value of the state.
+--- @param tag string A tag for debugging purposes.
+--- @return table A new State instance.
 function State:new(initialValue, tag)
   local instance = setmetatable({}, self)
   instance._tag = tag
@@ -27,10 +33,15 @@ function State:new(initialValue, tag)
   return instance
 end
 
+--- Gets the value of the state.
+--- @return any The value of the state.
 function State:get()
   return self._value
 end
 
+--- Sets the value of the state.
+--- If the new value is different from the current value, it will notify listeners and schedule a re-composition.
+--- @param newValue any The new value to set.
 function State:set(newValue)
   if type(self._value) == "table" and type(newValue) == "table" then
     if deepEqual(self._value, newValue) then return end
@@ -44,10 +55,14 @@ function State:set(newValue)
   _G._currentAppInstance:scheduleRecomposition()
 end
 
+--- Adds a listener to the state.
+--- @param listener function The listener to add.
 function State:addListener(listener)
   table.insert(instance._listeners, listener)
 end
 
+--- Removes a listener from the state.
+--- @param listener function The listener to remove.
 function State:removeListener(listener)
   for i, l in ipairs(self._listeners) do
     if l == listener then
@@ -57,6 +72,7 @@ function State:removeListener(listener)
   end
 end
 
+--- Notifies all listeners of a change in the state.
 function State:notifyListeners()
   for _, listener in ipairs(self._listeners) do
     listener(self._value)

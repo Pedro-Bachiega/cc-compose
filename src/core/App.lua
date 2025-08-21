@@ -1,6 +1,9 @@
 local App = {}
 App.__index = App
 
+--- Creates a new App instance.
+--- @param rootComposable function The root composable function of the application.
+--- @return table A new App instance.
 function App:new(rootComposable)
   local instance = setmetatable({}, self)
   instance.compositionCount = 0
@@ -12,13 +15,14 @@ function App:new(rootComposable)
   return instance
 end
 
+--- Schedules a re-composition of the UI.
 function App:scheduleRecomposition()
   self.recompositionPending = true
 end
 
--- Make composeAndDraw a method of App
+--- Composes and draws the UI.
 function App:composeAndDraw()
-  self.uiTree = self.rootComposable() -- Re-compose the UI tree
+  self.uiTree = self.rootComposable()
   self.monitor.setBackgroundColor(colors.black)
   self.monitor.clear()
   local w, h = self.monitor.getSize()
@@ -26,64 +30,66 @@ function App:composeAndDraw()
   self.compositionCount = self.compositionCount + 1
 end
 
+--- Renders the application.
+--- This function starts the main event loop.
+--- @param monitor table The monitor to render to.
 function App:render(monitor)
   self.monitor = monitor
   
-  -- Set global reference for compose.remember to access
   _G._currentAppInstance = self 
 
-  -- Initial composition and draw
-  self:composeAndDraw() -- Call the method
+  self:composeAndDraw()
 
-  -- Event loop
   while self.running do
     if self.recompositionPending then
-      self.recompositionPending = false -- Reset flag before drawing
+      self.recompositionPending = false
       self:composeAndDraw()
     end
 
-    -- Use a timer to create a non-blocking event pull
-    local timerId = os.startTimer(0) -- Fire immediately
+    local timerId = os.startTimer(0)
 
     local eventData = {os.pullEvent()}
     local event = eventData[1]
 
     if event == "timer" and eventData[2] == timerId then
-      -- This is our main loop tick, do nothing and let the loop continue
-      -- to check the recompositionPending flag.
     elseif event == "monitor_touch" then
       local monitorId, x, y = eventData[2], eventData[3], eventData[4]
       if monitorId == peripheral.getName(self.monitor) then
         local clickedComponent = self:findClickedComponent(self.uiTree, x, y)
         if clickedComponent and clickedComponent.onClick then
           clickedComponent:onClick(x, y)
-          -- The onClick might have scheduled a recomposition
         end
       end
     end
   end
-  _G._currentAppInstance = nil -- Clear global reference
+  _G._currentAppInstance = nil
 end
 
--- Helper function to check if a point is inside a component's bounding box
+--- Checks if a point is inside a component's bounding box.
+--- @param component table The component to check.
+--- @param touchX number The x coordinate of the point.
+--- @param touchY number The y coordinate of the point.
+--- @return boolean True if the point is inside the component, false otherwise.
 function App:isInside(component, touchX, touchY)
   return touchX >= component.x and touchX < (component.x + component.width) and
          touchY >= component.y and touchY < (component.y + component.height)
 end
 
--- Recursive function to find the clicked component
+--- Finds the component that was clicked.
+--- @param component table The component to search in.
+--- @param touchX number The x coordinate of the click.
+--- @param touchY number The y coordinate of the click.
+--- @return table|nil The clicked component, or nil if no component was clicked.
 function App:findClickedComponent(component, touchX, touchY)
   if not component then return nil end
 
   if self:isInside(component, touchX, touchY) then
-    -- Check children first, as they are drawn on top
-    for i = #component.children, 1, -1 do -- Iterate backwards to check top-most children first
+    for i = #component.children, 1, -1 do
       local clickedChild = self:findClickedComponent(component.children[i], touchX, touchY)
       if clickedChild then
         return clickedChild
       end
     end
-    -- If no child was clicked, and this component is clickable, return it
     if component.onClick then
       return component
     end

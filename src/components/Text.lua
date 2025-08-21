@@ -3,13 +3,15 @@ local Component = require("compose.src.core.Component")
 local Text = Component:new()
 Text.__index = Text
 
+--- Creates a new Text instance.
+--- @param props table A table of properties for the component.
+--- @return table A new Text instance.
 function Text:new(props)
   local instance = Component:new(props)
   setmetatable(instance, self)
   instance.textColor = props.textColor
   instance.textScale = props.textScale or 1
 
-  -- Intrinsic size based on text content, will be overridden by modifiers
   local textContent = tostring(props.text or "")
   instance.width = #textContent * (instance.textScale or 1)
   instance.height = 1 * (instance.textScale or 1)
@@ -17,6 +19,13 @@ function Text:new(props)
   return instance
 end
 
+--- Draws the component on the screen.
+--- @param x number The x coordinate to draw at.
+--- @param y number The y coordinate to draw at.
+--- @param monitor table The monitor to draw on.
+--- @param availableWidth number The available width for the component.
+--- @param availableHeight number The available height for the component.
+--- @return number, number, number, number The x, y, width, and height of the component.
 function Text:draw(x, y, monitor, availableWidth, availableHeight)
   self.x = x
   self.y = y
@@ -24,7 +33,6 @@ function Text:draw(x, y, monitor, availableWidth, availableHeight)
 
   local modifier = self.modifier or {properties = {}}
 
-  -- Determine final size based on modifiers and available space
   self.width = (modifier.properties.fillMaxWidth and availableWidth) or self.width
   self.height = (modifier.properties.fillMaxHeight and availableHeight) or self.height
 
@@ -34,7 +42,6 @@ function Text:draw(x, y, monitor, availableWidth, availableHeight)
   local effectiveBackgroundColor = self.backgroundColor or modifier.properties.backgroundColor
   local effectiveTextColor = self.textColor or modifier.properties.textColor
 
-  -- Draw background
   if effectiveBackgroundColor then
     monitor.setBackgroundColor(effectiveBackgroundColor)
     for row = y, y + self.height - 1 do
@@ -48,14 +55,12 @@ function Text:draw(x, y, monitor, availableWidth, availableHeight)
   end
 
   monitor.setCursorPos(x, y)
-  -- Truncate text if it exceeds the component's width
   local truncatedText = text
   if #text > self.width then
     truncatedText = string.sub(text, 1, self.width)
   end
   monitor.write(truncatedText)
 
-  -- Restore original colors
   monitor.setBackgroundColor(originalBackgroundColor)
   monitor.setTextColor(originalTextColor)
 
@@ -66,6 +71,8 @@ function Text:draw(x, y, monitor, availableWidth, availableHeight)
   return self.x, self.y, self.width, self.height
 end
 
+--- Returns the size of the component.
+--- @return table A table containing the width and height of the component.
 function Text:getSize()
   return { width = self.width, height = self.height }
 end
