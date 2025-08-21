@@ -58,7 +58,7 @@ end
 --- Adds a listener to the state.
 --- @param listener function The listener to add.
 function State:addListener(listener)
-  table.insert(instance._listeners, listener)
+  table.insert(self._listeners, listener)
 end
 
 --- Removes a listener from the state.
