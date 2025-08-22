@@ -21,6 +21,12 @@ function Component:new(props)
   instance.onDrawn = props.onDrawn
   instance.backgroundColor = props.backgroundColor
   instance.modifier = props.modifier
+
+  -- Transfer onClick from modifier to instance if present
+  if instance.modifier and instance.modifier.properties and instance.modifier.properties.onClick then
+    instance.onClick = instance.modifier.properties.onClick
+  end
+
   return instance
 end
 

@@ -75,4 +75,12 @@ function Modifier:fillMaxSize()
   return self
 end
 
+--- Makes the component clickable and executes the onClick function when clicked.
+--- @param onClick function The function to execute when the component is clicked.
+--- @return table The Modifier instance for chaining.
+function Modifier:clickable(onClick)
+  self.properties.onClick = onClick
+  return self
+end
+
 return Modifier
