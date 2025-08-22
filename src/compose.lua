@@ -79,9 +79,10 @@ end
 --- Creates a new State instance.
 --- @param initialValue any The initial value of the state.
 --- @param tag string A tag for debugging purposes.
+--- @param persist boolean Whether to persist the state across reboots. Defaults to false.
 --- @return table A new State instance.
-function compose.remember(initialValue, tag)
-  return State:new(initialValue, tag)
+function compose.remember(initialValue, tag, persist)
+  return State:new(initialValue, tag, persist)
 end
 
 --- Renders the application.

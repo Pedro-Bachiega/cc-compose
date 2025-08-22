@@ -1,6 +1,38 @@
 local State = {}
 State.__index = State
 
+local statesFile = "states.dat"
+local allPersistentStates = {} -- Global table to hold references to persistent State objects
+
+local function saveAllPersistentStates()
+    local dataToSave = {}
+    for tag, stateInstance in pairs(allPersistentStates) do
+        dataToSave[tag] = stateInstance:get() -- Get the current value
+    end
+    local file = fs.open(statesFile, "w")
+    if file then
+        file.write(textutils.serialize(dataToSave))
+        file.close()
+    else
+        print("Error: Could not save persistent states to " .. statesFile)
+    end
+end
+
+local function loadAllPersistentStates()
+    local file = fs.open(statesFile, "r")
+    if file then
+        local content = file.readAll()
+        file.close()
+        local loadedData = textutils.unserialize(content) or {}
+        return loadedData
+    else
+        print("No persistent states file found. Starting fresh.")
+        return {}
+    end
+end
+
+local loadedPersistentData = loadAllPersistentStates() -- Load once on script start
+
 --- Performs a deep comparison of two tables.
 --- @param t1 table The first table.
 --- @param t2 table The second table.
@@ -24,18 +56,33 @@ end
 --- Creates a new State instance.
 --- @param initialValue any The initial value of the state.
 --- @param tag string A tag for debugging purposes.
+--- @param persist boolean Whether to persist the state across reboots.
 --- @return table A new State instance.
-function State:new(initialValue, tag)
+function State:new(initialValue, tag, persist)
   local instance = setmetatable({}, self)
   instance._tag = tag
   instance._value = initialValue
   instance._listeners = {}
+  instance._persist = persist or false
+
+  if instance._persist and instance._tag then
+    -- If a value for this tag was loaded, use it
+    if loadedPersistentData[instance._tag] ~= nil then
+      instance._value = loadedPersistentData[instance._tag]
+    end
+    allPersistentStates[instance._tag] = instance -- Register for saving
+  end
+
   return instance
 end
 
 --- Gets the value of the state.
+--- @param transformFn function An optional function to transform the value before returning.
 --- @return any The value of the state.
-function State:get()
+function State:get(transformFn)
+  if transformFn and type(transformFn) == "function" then
+    return transformFn(self._value)
+  end
   return self._value
 end
 
@@ -53,6 +100,10 @@ function State:set(newValue)
   self._value = newValue
   self:notifyListeners()
   _G._currentAppInstance:scheduleRecomposition()
+
+  if self._persist and self._tag then
+    saveAllPersistentStates() -- Save all persistent states
+  end
 end
 
 --- Adds a listener to the state.
