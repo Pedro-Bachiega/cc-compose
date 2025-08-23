@@ -99,7 +99,10 @@ function State:set(newValue)
   print("State " .. (self._tag and "'" .. self._tag .. "' " or "") .. "changed, scheduling re-composition...")
   self._value = newValue
   self:notifyListeners()
-  _G._currentAppInstance:scheduleRecomposition()
+
+  if _G._currentAppInstance then
+    _G._currentAppInstance:scheduleRecomposition()
+  end
 
   if self._persist and self._tag then
     saveAllPersistentStates() -- Save all persistent states
