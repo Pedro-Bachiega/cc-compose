@@ -1,12 +1,23 @@
 local Component = require("compose.src.core.Component")
 
+--- @class Row : Component
+--- A layout component that arranges its children in a horizontal sequence.
+--- @field horizontalArrangement Arrangement The horizontal arrangement of the children.
+--- @field verticalAlignment VerticalAlignment The vertical alignment of the children.
 local Row = Component:new()
 Row.__index = Row
 
 --- Creates a new Row instance.
 --- @param props table A table of properties for the component.
---- @return table A new Row instance.
+--- @param props.children Component[] A list of child components.
+--- @param props.modifier? Modifier A Modifier instance to apply to the component.
+--- @param props.horizontalArrangement? Arrangement The horizontal arrangement of the children. Defaults to Arrangement.Start.
+--- @param props.verticalAlignment? VerticalAlignment The vertical alignment of the children. Defaults to VerticalAlignment.Top.
+--- @param props.spacing? number The spacing between children when using Arrangement.SpacedBy.
+--- @param props._compose table The compose instance, passed internally.
+--- @return Row A new Row instance.
 function Row:new(props)
+  --- @class Row : Component
   local instance = Component:new(props)
   setmetatable(instance, self)
   instance.horizontalArrangement = props.horizontalArrangement or props._compose.Arrangement.Start
@@ -153,7 +164,7 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
 end
 
 --- Returns the size of the component.
---- @return table A table containing the width and height of the component.
+--- @return {width: number, height: number} A table containing the width and height of the component.
 function Row:getSize()
   return { width = self.width, height = self.height }
 end

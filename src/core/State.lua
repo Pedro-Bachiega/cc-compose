@@ -1,9 +1,18 @@
+--- @class State
+--- Manages a piece of state in a Compose application.
+--- When the state changes, it notifies its listeners and triggers a re-composition of the UI.
+--- @field _tag string|nil A unique tag for debugging and persistence.
+--- @field _value any The current value of the state.
+--- @field _listeners function[] A list of listener functions.
+--- @field _persist boolean Whether the state should be persisted across reboots.
 local State = {}
 State.__index = State
 
 local statesFile = "states.dat"
+--- @type table<string, State>
 local allPersistentStates = {} -- Global table to hold references to persistent State objects
 
+--- Saves all persistent states to a file.
 local function saveAllPersistentStates()
     local dataToSave = {}
     for tag, stateInstance in pairs(allPersistentStates) do
@@ -18,6 +27,8 @@ local function saveAllPersistentStates()
     end
 end
 
+--- Loads all persistent states from a file.
+--- @return table<string, any> A table of loaded states.
 local function loadAllPersistentStates()
     local file = fs.open(statesFile, "r")
     if file then
@@ -55,9 +66,9 @@ end
 
 --- Creates a new State instance.
 --- @param initialValue any The initial value of the state.
---- @param tag string A tag for debugging purposes.
---- @param persist boolean Whether to persist the state across reboots.
---- @return table A new State instance.
+--- @param tag? string A unique tag for debugging and persistence.
+--- @param persist? boolean Whether to persist the state across reboots. Requires a tag.
+--- @return State A new State instance.
 function State:new(initialValue, tag, persist)
   local instance = setmetatable({}, self)
   instance._tag = tag
@@ -77,8 +88,9 @@ function State:new(initialValue, tag, persist)
 end
 
 --- Gets the value of the state.
---- @param transformFn function An optional function to transform the value before returning.
---- @return any The value of the state.
+--- An optional transformation function can be provided to derive a new value from the state.
+--- @param transformFn? fun(value: any): any An optional function to transform the value before returning.
+--- @return any The current value of the state, or the transformed value.
 function State:get(transformFn)
   if transformFn and type(transformFn) == "function" then
     return transformFn(self._value)
@@ -109,14 +121,14 @@ function State:set(newValue)
   end
 end
 
---- Adds a listener to the state.
---- @param listener function The listener to add.
+--- Adds a listener function to be called when the state changes.
+--- @param listener fun(newValue: any) The listener function.
 function State:addListener(listener)
   table.insert(self._listeners, listener)
 end
 
 --- Removes a listener from the state.
---- @param listener function The listener to remove.
+--- @param listener fun(newValue: any) The listener function to remove.
 function State:removeListener(listener)
   for i, l in ipairs(self._listeners) do
     if l == listener then
@@ -126,7 +138,7 @@ function State:removeListener(listener)
   end
 end
 
---- Notifies all listeners of a change in the state.
+--- Notifies all registered listeners of a state change.
 function State:notifyListeners()
   for _, listener in ipairs(self._listeners) do
     listener(self._value)

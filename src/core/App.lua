@@ -1,9 +1,17 @@
+--- @class App
+--- Manages the lifecycle of a Compose application, including rendering and event handling.
+--- @field compositionCount number The number of times the UI has been re-composed.
+--- @field rootComposable fun():Component The root composable function of the application.
+--- @field monitor table The monitor peripheral to render to.
+--- @field uiTree Component The root of the component tree.
+--- @field running boolean Whether the application is currently running.
+--- @field recompositionPending boolean Whether a re-composition has been scheduled.
 local App = {}
 App.__index = App
 
 --- Creates a new App instance.
---- @param rootComposable function The root composable function of the application.
---- @return table A new App instance.
+--- @param rootComposable fun():Component The root composable function of the application.
+--- @return App A new App instance.
 function App:new(rootComposable)
   local instance = setmetatable({}, self)
   instance.compositionCount = 0
@@ -15,12 +23,12 @@ function App:new(rootComposable)
   return instance
 end
 
---- Schedules a re-composition of the UI.
+--- Schedules a re-composition of the UI on the next frame.
 function App:scheduleRecomposition()
   self.recompositionPending = true
 end
 
---- Composes and draws the UI.
+--- Composes the UI tree and draws it to the monitor.
 function App:composeAndDraw()
   self.uiTree = self.rootComposable()
   self.monitor.setBackgroundColor(colors.black)
@@ -30,9 +38,8 @@ function App:composeAndDraw()
   self.compositionCount = self.compositionCount + 1
 end
 
---- Renders the application.
---- This function starts the main event loop.
---- @param monitor table The monitor to render to.
+--- Renders the application and starts the main event loop.
+--- @param monitor table The monitor peripheral to render to.
 function App:render(monitor)
   self.monitor = monitor
   
@@ -65,21 +72,21 @@ function App:render(monitor)
   _G._currentAppInstance = nil
 end
 
---- Checks if a point is inside a component's bounding box.
---- @param component table The component to check.
---- @param touchX number The x coordinate of the point.
---- @param touchY number The y coordinate of the point.
+--- Checks if a touch point is inside a component's bounding box.
+--- @param component Component The component to check.
+--- @param touchX number The x coordinate of the touch.
+--- @param touchY number The y coordinate of the touch.
 --- @return boolean True if the point is inside the component, false otherwise.
 function App:isInside(component, touchX, touchY)
   return touchX >= component.x and touchX < (component.x + component.width) and
          touchY >= component.y and touchY < (component.y + component.height)
 end
 
---- Finds the component that was clicked.
---- @param component table The component to search in.
+--- Finds the topmost component that was clicked at a given position.
+--- @param component Component The component to search within.
 --- @param touchX number The x coordinate of the click.
 --- @param touchY number The y coordinate of the click.
---- @return table|nil The clicked component, or nil if no component was clicked.
+--- @return Component|nil The clicked component, or nil if no component was clicked.
 function App:findClickedComponent(component, touchX, touchY)
   if not component then return nil end
 

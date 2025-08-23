@@ -1,20 +1,33 @@
 local Component = require("compose.src.core.Component")
 
+--- @class Button : Component
+--- A clickable button component.
+--- @field textColor? number The color of the button text.
+--- @field textScale? number The scale of the button text.
 local Button = Component:new()
 Button.__index = Button
 
 --- Creates a new Button instance.
 --- @param props table A table of properties for the component.
---- @return table A new Button instance.
+--- @param props.padding? number The padding around the button.
+--- @param props.text? string The text to display on the button.
+--- @param props.textColor? number The color of the button text.
+--- @param props.textScale? number The scale of the button text.
+--- @param props.onClick? fun() A function to call when the button is clicked.
+--- @param props.modifier? Modifier A Modifier instance to apply to the component.
+--- @return Button A new Button instance.
 function Button:new(props)
+  --- @class Button : Component
   local instance = Component:new(props)
   setmetatable(instance, self)
-  instance.textColor = props.textColor
+  instance.padding = props.padding or 0
+  instance.backgroundColor = props.backgroundColor or colors.white
+  instance.textColor = props.textColor or colors.black
   instance.textScale = props.textScale or 1
 
   local textContent = "[" .. tostring(props.text or "") .. "]"
-  instance.width = #textContent * (instance.textScale or 1)
-  instance.height = 1 * (instance.textScale or 1)
+  instance.width = (#textContent * (instance.textScale or 1)) + (instance.padding * 2)
+  instance.height = (instance.textScale or 1) + (instance.padding * 2)
 
   return instance
 end
@@ -25,7 +38,6 @@ end
 --- @param monitor table The monitor to draw on.
 --- @param availableWidth number The available width for the component.
 --- @param availableHeight number The available height for the component.
---- @return number, number, number, number The x, y, width, and height of the component.
 function Button:draw(x, y, monitor, availableWidth, availableHeight)
   self.x = x
   self.y = y
@@ -44,12 +56,12 @@ function Button:draw(x, y, monitor, availableWidth, availableHeight)
 
   if effectiveBackground then
     monitor.setBackgroundColor(effectiveBackground)
-    for row = y, y + self.height - 1 do
-      monitor.setCursorPos(x, row)
-      monitor.write(string.rep(" ", self.width))
+    for row = y - self.padding, y + self.height + self.padding - 1 do
+      monitor.setCursorPos(x - self.padding, row)
+      monitor.write(string.rep(" ", self.width + self.padding * 2))
     end
   end
-  
+
   if effectiveTextColor then
     monitor.setTextColor(effectiveTextColor)
   end
@@ -71,8 +83,6 @@ function Button:draw(x, y, monitor, availableWidth, availableHeight)
   if self.onDrawn then
     self:onDrawn(self)
   end
-
-  return self.x, self.y, self.width, self.height
 end
 
 --- Handles a click event on the component.
@@ -85,7 +95,7 @@ function Button:onClick(x, y)
 end
 
 --- Returns the size of the component.
---- @return table A table containing the width and height of the component.
+--- @return {width: number, height: number} A table containing the width and height of the component.
 function Button:getSize()
   return { width = self.width, height = self.height }
 end

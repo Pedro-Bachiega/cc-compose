@@ -1,12 +1,23 @@
 local Component = require("compose.src.core.Component")
 
+--- @class Column : Component
+--- A layout component that arranges its children in a vertical sequence.
+--- @field verticalArrangement Arrangement The vertical arrangement of the children.
+--- @field horizontalAlignment HorizontalAlignment The horizontal alignment of the children.
 local Column = Component:new()
 Column.__index = Column
 
 --- Creates a new Column instance.
 --- @param props table A table of properties for the component.
---- @return table A new Column instance.
+--- @param props.children Component[] A list of child components.
+--- @param props.modifier? Modifier A Modifier instance to apply to the component.
+--- @param props.verticalArrangement? Arrangement The vertical arrangement of the children. Defaults to Arrangement.Top.
+--- @param props.horizontalAlignment? HorizontalAlignment The horizontal alignment of the children. Defaults to HorizontalAlignment.Start.
+--- @param props.spacing? number The spacing between children when using Arrangement.SpacedBy.
+--- @param props._compose table The compose instance, passed internally.
+--- @return Column A new Column instance.
 function Column:new(props)
+  --- @class Column : Component
   local instance = Component:new(props)
   setmetatable(instance, self)
   instance.verticalArrangement = props.verticalArrangement or props._compose.Arrangement.Top
