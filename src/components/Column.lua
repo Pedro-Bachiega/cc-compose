@@ -88,7 +88,9 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
   end
 
   local currentY = innerY
-  for _, child in ipairs(self.children) do
+  local spacing = self.props.spacing or 0 -- Get spacing from props
+
+  for i, child in ipairs(self.children) do
     local childHeight = (child.modifier and child.modifier.properties.fillMaxHeight) and fillHeight or (child.height or 1)
     local childWidth = (child.modifier and child.modifier.properties.fillMaxWidth) and innerWidth or (child.width or innerWidth)
 
@@ -102,7 +104,11 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
     if child.draw then
       child:draw(childX, currentY, monitor, childWidth, childHeight)
     end
+
     currentY = currentY + childHeight
+    if self.verticalArrangement == self.props._compose.Arrangement.SpacedBy and i < #self.children then
+      currentY = currentY + spacing -- Add spacing between children
+    end
   end
 
   if effectiveBackground then
