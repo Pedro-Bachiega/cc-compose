@@ -34,6 +34,7 @@ end
 --- @param monitor table The monitor to draw on.
 --- @param availableWidth number The available width for the component.
 --- @param availableHeight number The available height for the component.
+--- @return table<fun()> The LaunchedEffect callback functions.
 function Text:draw(x, y, monitor, availableWidth, availableHeight)
   self.x = x
   self.y = y
@@ -73,8 +74,14 @@ function Text:draw(x, y, monitor, availableWidth, availableHeight)
   monitor.setTextColor(originalTextColor)
 
   if self.onDrawn then
-    self:onDrawn(self)
+    self:onDrawn()
   end
+
+  if self.onLaunched then
+    return {self.onLaunched}
+  end
+
+  return {}
 end
 
 --- Returns the size of the component.

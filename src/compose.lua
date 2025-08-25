@@ -8,35 +8,20 @@ local App = require("compose.src.core.App")
 local Modifier = require("compose.src.core.Modifier")
 local State = require("compose.src.core.State")
 
+local Arrangement = require("compose.src.model.Arrangement")
+local LifecycleState = require("compose.src.model.LifecycleState")
+local HorizontalAlignment = require("compose.src.model.HorizontalAlignment")
+local VerticalAlignment = require("compose.src.model.VerticalAlignment")
+
 --- @class compose
 --- The main entry point for the Compose framework.
 --- Provides factory functions for creating components and managing the application lifecycle.
 local compose = {}
 
---- @enum HorizontalAlignment
---- Specifies the horizontal alignment of components within a container.
-compose.HorizontalAlignment = {
-  Start = "start",
-  Center = "center",
-  End = "end"
-}
-
---- @enum VerticalAlignment
---- Specifies the vertical alignment of components within a container.
-compose.VerticalAlignment = {
-  Top = "top",
-  Center = "center",
-  Bottom = "bottom"
-}
-
---- @enum Arrangement
---- Specifies the arrangement of components within a layout.
-compose.Arrangement = {
-  SpaceEvenly = "spaceEvenly",
-  SpaceBetween = "spaceBetween",
-  SpaceAround = "spaceAround",
-  SpacedBy = "spacedBy"
-}
+compose.Arrangement = Arrangement
+compose.HorizontalAlignment = HorizontalAlignment
+compose.VerticalAlignment = VerticalAlignment
+compose.LifecycleState = LifecycleState
 
 --- The Modifier class.
 --- @type Modifier
@@ -117,6 +102,15 @@ end
 function compose.render(rootComposable, monitor)
   local app = App:new(rootComposable)
   app:render(monitor)
+end
+
+--- Returns the current lifecycle state of the application.
+--- @return LifecycleState? The current lifecycle state.
+function compose.currentLifecycleState()
+  local instance = _G._currentAppInstance
+  if not instance then return compose.LifecycleState.Destroyed end
+
+  return instance.lifecycleState
 end
 
 return compose

@@ -7,9 +7,11 @@
 --- @field width number The width of the component.
 --- @field height number The height of the component.
 --- @field onDrawn fun(self: Component) A function to call after the component has been drawn.
+--- @field onLaunched fun(self: Component) A function to call after the component has been drawn.
 --- @field backgroundColor? number The background color of the component.
 --- @field modifier? Modifier A Modifier instance to apply to the component.
---- @field onClick? fun() A function to call when the component is clicked.
+--- @field tag? string A unique tag for debugging and persistence.
+--- @field onClick? fun(self: Component, x: number, y: number) A function to call when the component is clicked.
 local Component = {}
 Component.__index = Component
 
@@ -18,6 +20,7 @@ Component.__index = Component
 --- @param props? table A table of properties for the component.
 --- @param props.children? Component[] A list of child components.
 --- @param props.onDrawn? fun(self: Component) A function to call after the component has been drawn.
+--- @param props.onLaunched? fun(self: Component) A function to call after the component has been drawn.
 --- @param props.backgroundColor? number The background color of the component.
 --- @param props.modifier? Modifier A Modifier instance to apply to the component.
 --- @return Component A new Component instance.
@@ -35,8 +38,10 @@ function Component:new(props)
   instance.width = 0
   instance.height = 0
   instance.onDrawn = props.onDrawn
+  instance.onLaunched = props.onLaunched
   instance.backgroundColor = props.backgroundColor
   instance.modifier = props.modifier
+  instance.tag = props.tag
 
   -- Transfer onClick from modifier to instance if present
   if instance.modifier and instance.modifier.properties and instance.modifier.properties.onClick then
@@ -49,6 +54,29 @@ end
 --- A lifecycle method that is called after the component has been drawn.
 --- @param instance Component The component instance that was drawn.
 function Component:onDrawn(instance)
+end
+
+--- Draws the component and its children, and returns a list of launched effects.
+--- @param x number The x coordinate to draw at.
+--- @param y number The y coordinate to draw at.
+--- @param monitor table The monitor to draw on.
+--- @param availableWidth number The available width for the component.
+--- @param availableHeight number The available height for the component.
+--- @return table A list of launched effect callbacks.
+function Component:draw(x, y, monitor, availableWidth, availableHeight)
+  local launchedEffects = {}
+  for _, child in ipairs(self.children) do
+    local childEffects = child:draw(x, y, monitor, availableWidth, availableHeight)
+    for _, effect in ipairs(childEffects) do
+      table.insert(launchedEffects, effect)
+    end
+  end
+
+  if self.onLaunched then
+    table.insert(launchedEffects, self.onLaunched)
+  end
+
+  return launchedEffects
 end
 
 --- Returns the size of the component.

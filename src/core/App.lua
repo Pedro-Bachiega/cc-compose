@@ -1,3 +1,5 @@
+local LifecycleState = require("compose.src.model.LifecycleState")
+
 --- @class App
 --- Manages the lifecycle of a Compose application, including rendering and event handling.
 --- @field compositionCount number The number of times the UI has been re-composed.
@@ -20,6 +22,7 @@ function App:new(rootComposable)
   instance.uiTree = nil
   instance.running = true
   instance.recompositionPending = false
+  instance.lifecycleState = LifecycleState.INITIALIZED
   return instance
 end
 
@@ -34,18 +37,25 @@ function App:composeAndDraw()
   self.monitor.setBackgroundColor(colors.black)
   self.monitor.clear()
   local w, h = self.monitor.getSize()
-  self.uiTree:draw(1, 1, self.monitor, w, h)
+  local launchedEffects = self.uiTree:draw(1, 1, self.monitor, w, h)
   self.compositionCount = self.compositionCount + 1
+
+  for _, effect in ipairs(launchedEffects) do
+    effect()
+  end
 end
 
 --- Renders the application and starts the main event loop.
 --- @param monitor table The monitor peripheral to render to.
 function App:render(monitor)
   self.monitor = monitor
-  
-  _G._currentAppInstance = self 
+  self.lifecycleState = LifecycleState.Created
+
+  _G._currentAppInstance = self
 
   self:composeAndDraw()
+  self.lifecycleState = LifecycleState.Started
+  self.lifecycleState = LifecycleState.Resumed
 
   while self.running do
     if self.recompositionPending then
@@ -69,6 +79,10 @@ function App:render(monitor)
       end
     end
   end
+
+  self.lifecycleState = LifecycleState.Paused
+  self.lifecycleState = LifecycleState.Stopped
+  self.lifecycleState = LifecycleState.Destroyed
   _G._currentAppInstance = nil
 end
 
@@ -78,8 +92,9 @@ end
 --- @param touchY number The y coordinate of the touch.
 --- @return boolean True if the point is inside the component, false otherwise.
 function App:isInside(component, touchX, touchY)
-  return touchX >= component.x and touchX < (component.x + component.width) and
-         touchY >= component.y and touchY < (component.y + component.height)
+  local isInsideHorizontalBounds = touchX >= component.x and touchX < (component.x + component.width)
+  local isInsideVerticalBounds = touchY >= component.y and touchY < (component.y + component.height)
+  return isInsideHorizontalBounds and isInsideVerticalBounds
 end
 
 --- Finds the topmost component that was clicked at a given position.
@@ -93,13 +108,9 @@ function App:findClickedComponent(component, touchX, touchY)
   if self:isInside(component, touchX, touchY) then
     for i = #component.children, 1, -1 do
       local clickedChild = self:findClickedComponent(component.children[i], touchX, touchY)
-      if clickedChild then
-        return clickedChild
-      end
+      if clickedChild then return clickedChild end
     end
-    if component.onClick then
-      return component
-    end
+    if component.onClick then return component end
   end
   return nil
 end

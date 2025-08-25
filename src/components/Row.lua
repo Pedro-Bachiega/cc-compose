@@ -11,7 +11,7 @@ Row.__index = Row
 --- @param props table A table of properties for the component.
 --- @param props.children Component[] A list of child components.
 --- @param props.modifier? Modifier A Modifier instance to apply to the component.
---- @param props.horizontalArrangement? Arrangement The horizontal arrangement of the children. Defaults to Arrangement.Start.
+--- @param props.horizontalArrangement? Arrangement The horizontal arrangement of the children.
 --- @param props.verticalAlignment? VerticalAlignment The vertical alignment of the children. Defaults to VerticalAlignment.Top.
 --- @param props.spacing? number The spacing between children when using Arrangement.SpacedBy.
 --- @param props._compose table The compose instance, passed internally.
@@ -20,7 +20,7 @@ function Row:new(props)
   --- @class Row : Component
   local instance = Component:new(props)
   setmetatable(instance, self)
-  instance.horizontalArrangement = props.horizontalArrangement or props._compose.Arrangement.Start
+  instance.horizontalArrangement = props.horizontalArrangement
   instance.verticalAlignment = props.verticalAlignment or props._compose.VerticalAlignment.Top
 
   local maxChildHeight = 0
@@ -46,7 +46,9 @@ end
 --- @param monitor table The monitor to draw on.
 --- @param availableWidth number The available width for the component.
 --- @param availableHeight number The available height for the component.
+--- @return table<fun()> The LaunchedEffect callback functions.
 function Row:draw(x, y, monitor, availableWidth, availableHeight)
+  local launchedEffects = {}
   self.x = x
   self.y = y
 
@@ -140,7 +142,10 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
     end
 
     if child.draw then
-      child:draw(currentX, childY, monitor, childWidth, childHeight)
+      local childEffects = child:draw(currentX, childY, monitor, childWidth, childHeight)
+      for _, effect in ipairs(childEffects) do
+        table.insert(launchedEffects, effect)
+      end
     end
     
     local gap = spacePerItem
@@ -159,8 +164,14 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
   end
 
   if self.onDrawn then
-    self:onDrawn(self)
+    self:onDrawn()
   end
+
+  if self.onLaunched then
+    table.insert(launchedEffects, self.onLaunched)
+  end
+
+  return launchedEffects
 end
 
 --- Returns the size of the component.

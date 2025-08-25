@@ -11,7 +11,7 @@ Column.__index = Column
 --- @param props table A table of properties for the component.
 --- @param props.children Component[] A list of child components.
 --- @param props.modifier? Modifier A Modifier instance to apply to the component.
---- @param props.verticalArrangement? Arrangement The vertical arrangement of the children. Defaults to Arrangement.Top.
+--- @param props.verticalArrangement? Arrangement The vertical arrangement of the children.
 --- @param props.horizontalAlignment? HorizontalAlignment The horizontal alignment of the children. Defaults to HorizontalAlignment.Start.
 --- @param props.spacing? number The spacing between children when using Arrangement.SpacedBy.
 --- @param props._compose table The compose instance, passed internally.
@@ -20,7 +20,7 @@ function Column:new(props)
   --- @class Column : Component
   local instance = Component:new(props)
   setmetatable(instance, self)
-  instance.verticalArrangement = props.verticalArrangement or props._compose.Arrangement.Top
+  instance.verticalArrangement = props.verticalArrangement or props._compose.Arrangement.Top -- Explicitly set default to Top
   instance.horizontalAlignment = props.horizontalAlignment or props._compose.HorizontalAlignment.Start
 
   local maxChildWidth = 0
@@ -28,6 +28,10 @@ function Column:new(props)
   for _, child in ipairs(instance.children) do
     maxChildWidth = math.max(maxChildWidth, child.width or 0)
     totalChildrenHeight = totalChildrenHeight + (child.height or 1)
+  end
+
+  if instance.verticalArrangement == props._compose.Arrangement.SpacedBy and #instance.children > 0 then
+    totalChildrenHeight = totalChildrenHeight + ((props.spacing or 0) * (#instance.children - 1))
   end
 
   instance.width = maxChildWidth
@@ -42,7 +46,9 @@ end
 --- @param monitor table The monitor to draw on.
 --- @param availableWidth number The available width for the component.
 --- @param availableHeight number The available height for the component.
+--- @return table<fun()> The LaunchedEffect callback functions.
 function Column:draw(x, y, monitor, availableWidth, availableHeight)
+  local launchedEffects = {}
   self.x = x
   self.y = y
 
@@ -50,23 +56,8 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
   local padding = modifier.properties.padding or {left = 0, top = 0, right = 0, bottom = 0}
   local border = modifier.properties.border or {width = 0, color = nil}
 
-  self.width = modifier.properties.fillMaxWidth and availableWidth or 0
-  self.height = modifier.properties.fillMaxHeight and availableHeight or 0
-
-  if not modifier.properties.fillMaxWidth or not modifier.properties.fillMaxHeight then
-    local maxChildWidth = 0
-    local totalChildrenHeight = 0
-    for _, child in ipairs(self.children) do
-      maxChildWidth = math.max(maxChildWidth, child.width or 0)
-      totalChildrenHeight = totalChildrenHeight + (child.height or 0)
-    end
-    if not modifier.properties.fillMaxWidth then
-      self.width = maxChildWidth + padding.left + padding.right + (border.width * 2)
-    end
-    if not modifier.properties.fillMaxHeight then
-      self.height = totalChildrenHeight + padding.top + padding.bottom + (border.width * 2)
-    end
-  end
+  self.width = modifier.properties.fillMaxWidth and availableWidth or self.width
+  self.height = modifier.properties.fillMaxHeight and availableHeight or self.height
 
   local originalBackground = monitor.getBackgroundColor()
   local effectiveBackground = self.backgroundColor or modifier.properties.backgroundColor
@@ -83,26 +74,33 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
   local innerWidth = self.width - padding.left - padding.right - (border.width * 2)
   local innerHeight = self.height - padding.top - padding.bottom - (border.width * 2)
 
-  local nonFillHeight = 0
-  local fillCount = 0
+  local totalChildrenHeight = 0
   for _, child in ipairs(self.children) do
-    if child.modifier and child.modifier.properties.fillMaxHeight then
-      fillCount = fillCount + 1
-    else
-      nonFillHeight = nonFillHeight + (child.height or 1)
+    totalChildrenHeight = totalChildrenHeight + (child.height or 1)
+  end
+
+  local startY = innerY
+  local spacing = 0
+
+  if self.verticalArrangement == self.props._compose.Arrangement.SpaceEvenly then
+    spacing = math.floor((innerHeight - totalChildrenHeight) / (#self.children + 1))
+    startY = innerY + spacing
+  elseif self.verticalArrangement == self.props._compose.Arrangement.SpaceBetween then
+    if #self.children > 1 then
+      spacing = math.floor((innerHeight - totalChildrenHeight) / (#self.children - 1))
     end
+  elseif self.verticalArrangement == self.props._compose.Arrangement.SpaceAround then
+    if #self.children > 0 then
+      spacing = math.floor((innerHeight - totalChildrenHeight) / #self.children)
+      startY = innerY + math.floor(spacing / 2)
+    end
+  elseif self.verticalArrangement == self.props._compose.Arrangement.SpacedBy then
+    spacing = self.props.spacing or 0
   end
 
-  local fillHeight = 0
-  if fillCount > 0 then
-    fillHeight = math.floor((innerHeight - nonFillHeight) / fillCount)
-  end
-
-  local currentY = innerY
-  local spacing = self.props.spacing or 0 -- Get spacing from props
-
+  local currentY = startY
   for i, child in ipairs(self.children) do
-    local childHeight = (child.modifier and child.modifier.properties.fillMaxHeight) and fillHeight or (child.height or 1)
+    local childHeight = (child.modifier and child.modifier.properties.fillMaxHeight) and innerHeight or (child.height or innerHeight)
     local childWidth = (child.modifier and child.modifier.properties.fillMaxWidth) and innerWidth or (child.width or innerWidth)
 
     local childX = innerX
@@ -113,22 +111,20 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
     end
 
     if child.draw then
-      child:draw(childX, currentY, monitor, childWidth, childHeight)
+      local childEffects = child:draw(childX, currentY, monitor, childWidth, childHeight)
+      for _, effect in ipairs(childEffects) do
+        table.insert(launchedEffects, effect)
+      end
     end
 
-    currentY = currentY + childHeight
-    if self.verticalArrangement == self.props._compose.Arrangement.SpacedBy and i < #self.children then
-      currentY = currentY + spacing -- Add spacing between children
-    end
+    currentY = currentY + childHeight + spacing
   end
 
   if effectiveBackground then
     monitor.setBackgroundColor(originalBackground)
   end
 
-  if self.onDrawn then
-    self:onDrawn(self)
-  end
+  return launchedEffects
 end
 
 --- Returns the size of the component.

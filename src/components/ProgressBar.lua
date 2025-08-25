@@ -72,6 +72,7 @@ end
 --- @param monitor table The monitor to draw on.
 --- @param availableWidth number The available width for the component.
 --- @param availableHeight number The available height for the component.
+--- @return table<fun()> The LaunchedEffect callback functions.
 function ProgressBar:draw(x, y, monitor, availableWidth, availableHeight)
     local frame = self.animationFrames[self.animationIndex:get()]
 
@@ -94,6 +95,16 @@ function ProgressBar:draw(x, y, monitor, availableWidth, availableHeight)
 
     sleep(0.1) -- A shorter sleep for smoother animation
     self.animationIndex:set((self.animationIndex:get() % #self.animationFrames) + 1)
+
+    if self.onDrawn then
+      self:onDrawn()
+    end
+
+    if self.onLaunched then
+        return {self.onLaunched}
+    end
+
+    return {}
 end
 
 return ProgressBar
