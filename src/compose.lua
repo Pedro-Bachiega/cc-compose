@@ -68,6 +68,8 @@ end
 --- @param props table A table of properties for the component.
 --- @return Text A new Text component.
 function compose.Text(props)
+  props = props or {}
+  props._compose = compose
   return Text:new(props)
 end
 
@@ -75,6 +77,8 @@ end
 --- @param props table A table of properties for the component.
 --- @return Button A new Button component.
 function compose.Button(props)
+  props = props or {}
+  props._compose = compose
   return Button:new(props)
 end
 
@@ -82,6 +86,8 @@ end
 --- @param props table A table of properties for the component.
 --- @return ProgressBar A new ProgressBar component.
 function compose.ProgressBar(props)
+  props = props or {}
+  props._compose = compose
   return ProgressBar:new(props)
 end
 

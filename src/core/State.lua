@@ -12,37 +12,38 @@ local statesFile = "states.dat"
 --- @type table<string, State>
 local allPersistentStates = {} -- Global table to hold references to persistent State objects
 
---- Saves all persistent states to a file.
-local function saveAllPersistentStates()
-    local dataToSave = {}
-    for tag, stateInstance in pairs(allPersistentStates) do
-        dataToSave[tag] = stateInstance:get() -- Get the current value
-    end
-    local file = fs.open(statesFile, "w")
-    if file then
-        file.write(textutils.serialize(dataToSave))
-        file.close()
-    else
-        print("Error: Could not save persistent states to " .. statesFile)
-    end
-end
+local loadedPersistentData = {}
 
 --- Loads all persistent states from a file.
---- @return table<string, any> A table of loaded states.
 local function loadAllPersistentStates()
-    local file = fs.open(statesFile, "r")
-    if file then
-        local content = file.readAll()
-        file.close()
-        local loadedData = textutils.unserialize(content) or {}
-        return loadedData
-    else
-        print("No persistent states file found. Starting fresh.")
-        return {}
-    end
+  local file = fs.open(statesFile, "r")
+  if file then
+    local content = file.readAll()
+    file.close()
+    local loadedData = textutils.unserialize(content) or {}
+    loadedPersistentData = loadedData
+  else
+    print("No persistent states file found. Starting fresh.")
+  end
 end
 
-local loadedPersistentData = loadAllPersistentStates() -- Load once on script start
+--- Saves all persistent states to a file.
+local function saveAllPersistentStates()
+  local dataToSave = {}
+  for tag, stateInstance in pairs(allPersistentStates) do
+    dataToSave[tag] = stateInstance:get() -- Get the current value
+  end
+  local file = fs.open(statesFile, "w")
+  if file then
+    file.write(textutils.serialize(dataToSave))
+    file.close()
+    loadAllPersistentStates()
+  else
+    print("Error: Could not save persistent states to " .. statesFile)
+  end
+end
+
+loadAllPersistentStates() -- Load once on script start
 
 --- Performs a deep comparison of two tables.
 --- @param t1 table The first table.
@@ -108,16 +109,15 @@ function State:set(newValue)
     if self._value == newValue then return end
   end
 
-  print("State " .. (self._tag and "'" .. self._tag .. "' " or "") .. "changed, scheduling re-composition...")
   self._value = newValue
   self:notifyListeners()
 
-  if _G._currentAppInstance then
-    _G._currentAppInstance:scheduleRecomposition()
-  end
-
   if self._persist and self._tag then
     saveAllPersistentStates() -- Save all persistent states
+  end
+
+  if _G._currentAppInstance then
+    _G._currentAppInstance:scheduleRecomposition()
   end
 end
 
