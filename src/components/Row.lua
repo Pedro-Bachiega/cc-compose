@@ -18,7 +18,7 @@ Row.__index = Row
 --- @return Row A new Row instance.
 function Row:new(props)
   --- @class Row : Component
-  local instance = Component:new(props)
+  local instance = Component:new("Row", props)
   setmetatable(instance, self)
   instance.horizontalArrangement = props.horizontalArrangement
   instance.verticalAlignment = props.verticalAlignment or props._compose.VerticalAlignment.Top
@@ -42,7 +42,7 @@ end
 
 --- Draws the component on the screen.
 --- @param x number The x coordinate to draw at.
---- @param param y number The y coordinate to draw at.
+--- @param y number The y coordinate to draw at.
 --- @param monitor table The monitor to draw on.
 --- @param availableWidth number The available width for the component.
 --- @param availableHeight number The available height for the component.
@@ -52,9 +52,9 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
   self.x = x
   self.y = y
 
-  local modifier = self.modifier or {properties = {}}
-  local padding = modifier.properties.padding or {left = 0, top = 0, right = 0, bottom = 0}
-  local border = modifier.properties.border or {width = 0, color = nil}
+  local modifier = self.modifier or { properties = {} }
+  local padding = modifier.properties.padding or { left = 0, top = 0, right = 0, bottom = 0 }
+  local border = modifier.properties.border or { width = 0, color = nil }
 
   self.width = modifier.properties.fillMaxWidth and availableWidth or 0
   self.height = modifier.properties.fillMaxHeight and availableHeight or 0
@@ -67,6 +67,9 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
       totalChildrenWidth = totalChildrenWidth + (child.width or 0)
     end
     if not modifier.properties.fillMaxWidth then
+      if self.horizontalArrangement == self.props._compose.Arrangement.SpacedBy and #self.children > 1 then
+        totalChildrenWidth = totalChildrenWidth + (self.props.spacing * (#self.children - 1))
+      end
       self.width = totalChildrenWidth + padding.left + padding.right + (border.width * 2)
     end
     if not modifier.properties.fillMaxHeight then
@@ -91,11 +94,13 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
 
   local totalUnweightedWidth = 0
   local totalWeight = 0
+
+  --- @type table<Component>
   local weightedChildren = {}
 
   -- First pass: Calculate total unweighted width and total weight
   for _, child in ipairs(self.children) do
-    local childModifier = child.modifier or {properties = {}}
+    local childModifier = child.modifier or { properties = {} }
     if childModifier.properties.weight then
       totalWeight = totalWeight + childModifier.properties.weight
       table.insert(weightedChildren, child)
@@ -109,7 +114,7 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
 
   -- Second pass: Distribute width for weighted children
   for _, child in ipairs(weightedChildren) do
-    local childModifier = child.modifier or {properties = {}}
+    local childModifier = child.modifier or { properties = {} }
     local weight = childModifier.properties.weight
     if totalWeight > 0 then
       local calculatedWidth = math.floor((weight / totalWeight) * remainingWidth)
@@ -146,13 +151,22 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
 
   local currentX = innerX + startOffset
   for i, child in ipairs(self.children) do
-    local childWidth = (child.modifier and child.modifier.properties.fillMaxWidth) and innerWidth or (child.width or 0)
-    local childHeight = (child.modifier and child.modifier.properties.fillMaxHeight) and innerHeight or (child.height or innerHeight)
+    local mod = child.modifier and child.modifier.properties or {}
 
-    -- If child has weight, its width is already calculated and assigned in the second pass.
-    -- So, we should use child.width directly here.
-    if child.modifier and child.modifier.properties.weight then
-      childWidth = child.width
+    local childWidth = child.width or 0
+    if mod.width then
+      childWidth = mod.width
+    elseif mod.fillMaxWidth then
+      childWidth = innerWidth
+    elseif mod.weight then
+      childWidth = child.width -- already calculated
+    end
+
+    local childHeight = child.height or 1
+    if mod.height then
+      childHeight = mod.height
+    elseif mod.fillMaxHeight then
+      childHeight = innerHeight
     end
 
     local childY = innerY
@@ -168,11 +182,9 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
         table.insert(launchedEffects, effect)
       end
     end
-    
+
     local gap = spacePerItem
-    if self.horizontalArrangement == self.props._compose.Arrangement.SpaceAround then
-    elseif self.horizontalArrangement == self.props._compose.Arrangement.SpaceEvenly then
-    else
+    if self.horizontalArrangement == self.props._compose.Arrangement.SpacedBy or self.horizontalArrangement == self.props._compose.Arrangement.SpaceBetween then
       if i == #self.children then
         gap = 0
       end

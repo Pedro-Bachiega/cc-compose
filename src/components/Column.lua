@@ -18,7 +18,7 @@ Column.__index = Column
 --- @return Column A new Column instance.
 function Column:new(props)
   --- @class Column : Component
-  local instance = Component:new(props)
+  local instance = Component:new("Column", props)
   setmetatable(instance, self)
   instance.verticalArrangement = props.verticalArrangement
   instance.horizontalAlignment = props.horizontalAlignment or props._compose.HorizontalAlignment.Start
@@ -58,6 +58,25 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
 
   self.width = modifier.properties.fillMaxWidth and availableWidth or self.width
   self.height = modifier.properties.fillMaxHeight and availableHeight or self.height
+
+  if not modifier.properties.fillMaxWidth or not modifier.properties.fillMaxHeight then
+    local maxChildWidth = 0
+    local totalChildrenHeight = 0
+    for _, child in ipairs(self.children) do
+      maxChildWidth = math.max(maxChildWidth, child.width or 0)
+      totalChildrenHeight = totalChildrenHeight + (child.height or 1)
+    end
+
+    if not modifier.properties.fillMaxHeight then
+      if self.verticalArrangement == self.props._compose.Arrangement.SpacedBy and #self.children > 0 then
+        totalChildrenHeight = totalChildrenHeight + ((self.props.spacing or 0) * (#self.children - 1))
+      end
+      self.height = totalChildrenHeight + padding.top + padding.bottom + (border.width * 2)
+    end
+    if not modifier.properties.fillMaxWidth then
+      self.width = maxChildWidth + padding.left + padding.right + (border.width * 2)
+    end
+  end
 
   local originalBackground = monitor.getBackgroundColor()
   local effectiveBackground = self.backgroundColor or modifier.properties.backgroundColor
@@ -132,13 +151,22 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
 
   local currentY = startY
   for i, child in ipairs(self.children) do
-    local childHeight = (child.modifier and child.modifier.properties.fillMaxHeight) and innerHeight or (child.height or innerHeight)
-    local childWidth = (child.modifier and child.modifier.properties.fillMaxWidth) and innerWidth or (child.width or innerWidth)
+    local mod = child.modifier and child.modifier.properties or {}
 
-    -- If child has weight, its height is already calculated and assigned in the second pass.
-    -- So, we should use child.height directly here.
-    if child.modifier and child.modifier.properties.weight then
-      childHeight = child.height
+    local childWidth = child.width or 0
+    if mod.width then
+      childWidth = mod.width
+    elseif mod.fillMaxWidth then
+      childWidth = innerWidth
+    end
+
+    local childHeight = child.height or 1
+    if mod.height then
+      childHeight = mod.height
+    elseif mod.fillMaxHeight then
+      childHeight = innerHeight
+    elseif mod.weight then
+      childHeight = child.height -- already calculated
     end
 
     local childX = innerX
@@ -155,7 +183,13 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
       end
     end
 
-    currentY = currentY + childHeight + spacing
+    local gap = spacing
+    if self.verticalArrangement == self.props._compose.Arrangement.SpacedBy or self.verticalArrangement == self.props._compose.Arrangement.SpaceBetween then
+      if i == #self.children then
+        gap = 0
+      end
+    end
+    currentY = currentY + childHeight + gap
   end
 
   if effectiveBackground then

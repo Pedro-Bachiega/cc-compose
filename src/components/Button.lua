@@ -18,7 +18,7 @@ Button.__index = Button
 --- @return Button A new Button instance.
 function Button:new(props)
   --- @class Button : Component
-  local instance = Component:new(props)
+  local instance = Component:new("Button", props)
   setmetatable(instance, self)
   instance.padding = props.padding or 0
   instance.backgroundColor = props.backgroundColor or colors.white

@@ -105,9 +105,16 @@ end
 function App:findClickedComponent(component, touchX, touchY)
   if not component then return nil end
 
+  local children = component.children or {}
+
   if self:isInside(component, touchX, touchY) then
-    for i = #component.children, 1, -1 do
-      local clickedChild = self:findClickedComponent(component.children[i], touchX, touchY)
+    if component.className == "NavigationDrawer" then
+      table.insert(children, table.unpack(component.drawerContent))
+      table.insert(children, table.unpack(component.content))
+    end
+
+    for i = #children, 1, -1 do
+      local clickedChild = self:findClickedComponent(children[i], touchX, touchY)
       if clickedChild then return clickedChild end
     end
     if component.onClick then return component end

@@ -112,4 +112,30 @@ function Modifier:weight(weight)
   return self
 end
 
+--- Sets the preferred width and height of the component.
+--- @param width number The width of the component.
+--- @param height? number The height of the component. If not provided, it will be the same as the width.
+--- @return Modifier The Modifier instance for chaining.
+function Modifier:size(width, height)
+  self.properties.width = width
+  self.properties.height = height or width
+  return self
+end
+
+--- Sets the preferred width of the component.
+--- @param width number The width of the component.
+--- @return Modifier The Modifier instance for chaining.
+function Modifier:width(width)
+  self.properties.width = width
+  return self
+end
+
+--- Sets the preferred height of the component.
+--- @param height number The height of the component.
+--- @return Modifier The Modifier instance for chaining.
+function Modifier:height(height)
+  self.properties.height = height
+  return self
+end
+
 return Modifier

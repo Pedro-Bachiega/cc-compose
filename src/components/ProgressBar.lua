@@ -14,7 +14,7 @@ ProgressBar.__index = ProgressBar
 --- @return ProgressBar A new Loading instance.
 function ProgressBar:new(props)
   --- @class ProgressBar : Component
-  local instance = Component:new(props)
+  local instance = Component:new("ProgressBar", props)
   setmetatable(instance, self)
   -- 3x3 matrix frames for animation
   instance.animationFrames = {

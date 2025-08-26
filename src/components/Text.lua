@@ -16,7 +16,7 @@ Text.__index = Text
 --- @return Text A new Text instance.
 function Text:new(props)
   --- @class Text : Component
-  local instance = Component:new(props)
+  local instance = Component:new("Text", props)
   setmetatable(instance, self)
   instance.textColor = props.textColor or colors.white
   instance.textScale = props.textScale or 1

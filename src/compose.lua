@@ -1,7 +1,9 @@
 local Button = require("compose.src.components.Button")
 local Column = require("compose.src.components.Column")
+local NavigationDrawer = require("compose.src.components.NavigationDrawer")
 local ProgressBar = require("compose.src.components.ProgressBar")
 local Row = require("compose.src.components.Row")
+local Spacer = require("compose.src.components.Spacer")
 local Text = require("compose.src.components.Text")
 
 local App = require("compose.src.core.App")
@@ -67,6 +69,15 @@ function compose.Button(props)
   return Button:new(props)
 end
 
+--- Creates a new Spacer component.
+--- @param props table A table of properties for the component.
+--- @return Spacer A new Spacer component.
+function compose.Spacer(props)
+  props = props or {}
+  props._compose = compose
+  return Spacer:new(props)
+end
+
 --- Creates a new ProgressBar component.
 --- @param props table A table of properties for the component.
 --- @return ProgressBar A new ProgressBar component.
@@ -74,6 +85,19 @@ function compose.ProgressBar(props)
   props = props or {}
   props._compose = compose
   return ProgressBar:new(props)
+end
+
+--- Creates a new NavigationDrawer component.
+--- @param props table A table of properties for the component.
+--- @return NavigationDrawer A new NavigationDrawer component.
+function compose.NavigationDrawer(props)
+  props = props or {}
+  props._compose = compose
+
+  if not props.drawerContent or not props.content then
+    error("drawerContent and content are required for NavigationDrawer")
+  end
+  return NavigationDrawer:new(props)
 end
 
 --- Exits the currently running Compose application.

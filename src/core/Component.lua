@@ -11,12 +11,14 @@
 --- @field backgroundColor? number The background color of the component.
 --- @field modifier? Modifier A Modifier instance to apply to the component.
 --- @field tag? string A unique tag for debugging and persistence.
+--- @field className? string The class name of the component (e.g., "Button", "Column").
 --- @field onClick? fun(self: Component, x: number, y: number) A function to call when the component is clicked.
 local Component = {}
 Component.__index = Component
 
 --- Creates a new Component instance.
 --- This is the base class for all components.
+--- @param className string The class name of the component.
 --- @param props? table A table of properties for the component.
 --- @param props.children? Component[] A list of child components.
 --- @param props.onDrawn? fun(self: Component) A function to call after the component has been drawn.
@@ -24,10 +26,11 @@ Component.__index = Component
 --- @param props.backgroundColor? number The background color of the component.
 --- @param props.modifier? Modifier A Modifier instance to apply to the component.
 --- @return Component A new Component instance.
-function Component:new(props)
+function Component:new(className, props)
   props = props or {}
 
   local instance = setmetatable({}, self)
+  instance.className = className
   instance.props = props
   instance.children = {}
   if props.children then
@@ -42,6 +45,7 @@ function Component:new(props)
   instance.backgroundColor = props.backgroundColor
   instance.modifier = props.modifier
   instance.tag = props.tag
+  instance.className = props.className -- Add className field
 
   -- Transfer onClick from modifier to instance if present
   if instance.modifier and instance.modifier.properties and instance.modifier.properties.onClick then
