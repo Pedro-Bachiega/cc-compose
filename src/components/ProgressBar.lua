@@ -83,15 +83,24 @@ function ProgressBar:draw(x, y, monitor, availableWidth, availableHeight)
     for r = 1, 3 do
         monitor.setCursorPos(startX, startY + r - 1)
         for c = 1, 3 do
-            monitor.write(frame[r][c])
+            -- Ensure character is drawn within available width
+            if startX + c - 1 >= x and startX + c - 1 < x + availableWidth then
+                monitor.write(frame[r][c])
+            end
         end
     end
 
     -- Draw the text below the animation
-    local textX = x + math.floor((availableWidth - #self.text) / 2)
+    local textToDraw = self.text
+    -- Truncate text if it exceeds the available width
+    if #textToDraw > availableWidth then
+        textToDraw = string.sub(textToDraw, 1, availableWidth)
+    end
+
+    local textX = x + math.floor((availableWidth - #textToDraw) / 2)
     local textY = startY + 3
     monitor.setCursorPos(textX, textY)
-    monitor.write(self.text)
+    monitor.write(textToDraw)
 
     sleep(0.1) -- A shorter sleep for smoother animation
     self.animationIndex:set((self.animationIndex:get() % #self.animationFrames) + 1)

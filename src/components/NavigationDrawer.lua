@@ -71,33 +71,40 @@ function NavigationDrawer:draw(x, y, monitor, availableWidth, availableHeight)
     local launchedEffects = {}
     self.x = x
     self.y = y
-    self.width = availableWidth -- Set width and height for handleInput
+    self.width = availableWidth
     self.height = availableHeight
 
-    -- Calculate drawerWidth based on 40% of availableWidth or drawerContentWidth
-    local drawerWidth = math.max(math.floor(availableWidth * 0.4), self.drawerContentWidth or 0)
-    local contentX = x
-    local contentWidth = availableWidth
+    local drawerOpen = self.isOpen and self.isOpen:get()
 
-    if self.isOpen and self.isOpen:get() then
-        -- If drawer is open, draw drawer content first
-        local childEffects = self.drawerContent:draw(x, y, monitor, drawerWidth, availableHeight)
+    local drawerActualWidth = 0
+    local contentActualX = x
+    local contentActualWidth = availableWidth
+
+    if drawerOpen then
+        -- Drawer takes up 40% of the available width
+        drawerActualWidth = math.floor(availableWidth * 0.4)
+        -- Ensure drawerActualWidth is at least 1 to avoid division by zero or negative width
+        drawerActualWidth = math.max(1, drawerActualWidth)
+
+        -- Draw drawer content
+        local childEffects = self.drawerContent:draw(x, y, monitor, drawerActualWidth, availableHeight)
         for _, effect in ipairs(childEffects) do
             table.insert(launchedEffects, effect)
         end
 
-        -- Then, adjust content position and width for the main content
-        contentX = x + drawerWidth
-        contentWidth = availableWidth - drawerWidth
+        -- Adjust main content position and width
+        contentActualX = x + drawerActualWidth
+        contentActualWidth = availableWidth - drawerActualWidth
+        -- Ensure contentActualWidth is at least 0
+        contentActualWidth = math.max(0, contentActualWidth)
     end
 
-    -- Draw the main content (shifted if drawer is open)
-    local childEffects = self.content:draw(contentX, y, monitor, contentWidth, availableHeight)
+    -- Draw the main content
+    local childEffects = self.content:draw(contentActualX, y, monitor, contentActualWidth, availableHeight)
     for _, effect in ipairs(childEffects) do
         table.insert(launchedEffects, effect)
     end
 
-    -- Handle onDrawn and onLaunched for the NavigationDrawer itself
     if self.onDrawn then
         self:onDrawn()
     end

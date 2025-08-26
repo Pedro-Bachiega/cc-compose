@@ -93,6 +93,14 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
   local innerWidth = self.width - padding.left - padding.right - (border.width * 2)
   local innerHeight = self.height - padding.top - padding.bottom - (border.width * 2)
 
+  -- Cap innerWidth and innerHeight to available space
+  innerWidth = math.min(innerWidth, availableWidth - (padding.left + padding.right + (border.width * 2)))
+  innerHeight = math.min(innerHeight, availableHeight - (padding.top + padding.bottom + (border.width * 2)))
+
+  -- Ensure innerWidth and innerHeight are not negative
+  innerWidth = math.max(0, innerWidth)
+  innerHeight = math.max(0, innerHeight)
+
   local totalUnweightedHeight = 0
   local totalWeight = 0
   local weightedChildren = {}
@@ -175,6 +183,11 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
     elseif self.horizontalAlignment == self.props._compose.HorizontalAlignment.End then
       childX = innerX + (innerWidth - childWidth)
     end
+
+    -- Ensure childX does not cause overflow to the right
+    childX = math.min(childX, innerX + innerWidth - childWidth)
+    -- Ensure childX is not less than innerX (left boundary)
+    childX = math.max(childX, innerX)
 
     if child.draw then
       local childEffects = child:draw(childX, currentY, monitor, childWidth, childHeight)

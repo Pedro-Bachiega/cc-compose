@@ -92,6 +92,14 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
   local innerWidth = self.width - padding.left - padding.right - (border.width * 2)
   local innerHeight = self.height - padding.top - padding.bottom - (border.width * 2)
 
+  -- Cap innerWidth and innerHeight to available space
+  innerWidth = math.min(innerWidth, availableWidth - (padding.left + padding.right + (border.width * 2)))
+  innerHeight = math.min(innerHeight, availableHeight - (padding.top + padding.bottom + (border.width * 2)))
+
+  -- Ensure innerWidth and innerHeight are not negative
+  innerWidth = math.max(0, innerWidth)
+  innerHeight = math.max(0, innerHeight)
+
   local totalUnweightedWidth = 0
   local totalWeight = 0
 
@@ -175,6 +183,11 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
     elseif self.verticalAlignment == self.props._compose.VerticalAlignment.Bottom then
       childY = innerY + (innerHeight - childHeight)
     end
+
+    -- Ensure childY does not cause overflow to the bottom
+    childY = math.min(childY, innerY + innerHeight - childHeight)
+    -- Ensure childY is not less than innerY (top boundary)
+    childY = math.max(childY, innerY)
 
     if child.draw then
       local childEffects = child:draw(currentX, childY, monitor, childWidth, childHeight)

@@ -138,4 +138,11 @@ function Modifier:height(height)
   return self
 end
 
+--- Marks the component to be clipped to its bounds.
+--- @return Modifier The Modifier instance for chaining.
+function Modifier:clipped()
+  self.properties.clipped = true
+  return self
+end
+
 return Modifier

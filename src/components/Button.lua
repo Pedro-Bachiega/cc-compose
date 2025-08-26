@@ -45,6 +45,8 @@ function Button:draw(x, y, monitor, availableWidth, availableHeight)
   local text = self.props.text or ""
 
   local modifier = self.modifier or {properties = {}}
+  local padding = modifier.properties.padding or {left = 0, top = 0, right = 0, bottom = 0}
+  local border = modifier.properties.border or {width = 0, color = nil}
 
   self.width = (modifier.properties.fillMaxWidth and availableWidth) or self.width
   self.height = (modifier.properties.fillMaxHeight and availableHeight) or self.height
@@ -55,11 +57,18 @@ function Button:draw(x, y, monitor, availableWidth, availableHeight)
   local effectiveBackground = self.backgroundColor or modifier.properties.backgroundColor
   local effectiveTextColor = self.textColor or modifier.properties.textColor
 
+  -- Calculate inner drawing area for content (text)
+  local innerX = x + padding.left + border.width
+  local innerY = y + padding.top + border.width
+  local innerWidth = self.width - padding.left - padding.right - (border.width * 2)
+  local innerHeight = self.height - padding.top - padding.bottom - (border.width * 2)
+
   if effectiveBackground then
     monitor.setBackgroundColor(effectiveBackground)
-    for row = y - self.padding, y + self.height + self.padding - 1 do
-      monitor.setCursorPos(x - self.padding, row)
-      monitor.write(string.rep(" ", self.width + self.padding * 2))
+    -- Draw background within the component's calculated bounds (self.width, self.height)
+    for row = y, y + self.height - 1 do
+      monitor.setCursorPos(x, row)
+      monitor.write(string.rep(" ", self.width))
     end
   end
 
@@ -68,12 +77,13 @@ function Button:draw(x, y, monitor, availableWidth, availableHeight)
   end
 
   local buttonText = "[" .. text .. "]"
-  if #buttonText > self.width then
-    buttonText = string.sub(buttonText, 1, self.width)
+  -- Truncate buttonText based on innerWidth
+  if #buttonText > innerWidth then
+    buttonText = string.sub(buttonText, 1, innerWidth)
   end
 
-  local textX = x + math.floor((self.width - #buttonText) / 2)
-  local textY = y + math.floor((self.height - 1) / 2)
+  local textX = innerX + math.floor((innerWidth - #buttonText) / 2)
+  local textY = innerY + math.floor((innerHeight - 1) / 2)
 
   monitor.setCursorPos(textX, textY)
   monitor.write(buttonText)

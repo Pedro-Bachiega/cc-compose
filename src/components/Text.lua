@@ -64,11 +64,17 @@ function Text:draw(x, y, monitor, availableWidth, availableHeight)
   end
 
   monitor.setCursorPos(x, y)
-  local truncatedText = text
-  if #text > self.width then
-    truncatedText = string.sub(text, 1, self.width)
+  local textToDraw = text
+  local effectiveTextScale = self.textScale or 1
+
+  -- Calculate the maximum number of characters that can fit within availableWidth
+  local maxChars = math.floor(availableWidth / effectiveTextScale)
+
+  -- Truncate text if it exceeds the calculated maximum characters
+  if #textToDraw > maxChars then
+    textToDraw = string.sub(textToDraw, 1, maxChars)
   end
-  monitor.write(truncatedText)
+  monitor.write(textToDraw)
 
   monitor.setBackgroundColor(originalBackgroundColor)
   monitor.setTextColor(originalTextColor)
