@@ -42,7 +42,7 @@ end
 
 --- Draws the component on the screen.
 --- @param x number The x coordinate to draw at.
---- @param y number The y coordinate to draw at.
+--- @param param y number The y coordinate to draw at.
 --- @param monitor table The monitor to draw on.
 --- @param availableWidth number The available width for the component.
 --- @param availableHeight number The available height for the component.
@@ -89,26 +89,41 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
   local innerWidth = self.width - padding.left - padding.right - (border.width * 2)
   local innerHeight = self.height - padding.top - padding.bottom - (border.width * 2)
 
-  local nonFillWidth = 0
-  local fillCount = 0
+  local totalUnweightedWidth = 0
+  local totalWeight = 0
+  local weightedChildren = {}
+
+  -- First pass: Calculate total unweighted width and total weight
   for _, child in ipairs(self.children) do
-    if child.modifier and child.modifier.properties.fillMaxWidth then
-      fillCount = fillCount + 1
+    local childModifier = child.modifier or {properties = {}}
+    if childModifier.properties.weight then
+      totalWeight = totalWeight + childModifier.properties.weight
+      table.insert(weightedChildren, child)
     else
-      nonFillWidth = nonFillWidth + (child.width or 0)
+      totalUnweightedWidth = totalUnweightedWidth + (child.width or 0)
     end
   end
 
-  local fillWidth = 0
-  if fillCount > 0 then
-    local spacing = (self.horizontalArrangement == self.props._compose.Arrangement.SpacedBy and self.props.spacing * (#self.children - 1)) or 0
-    fillWidth = math.floor((innerWidth - nonFillWidth - spacing) / fillCount)
+  local remainingWidth = innerWidth - totalUnweightedWidth
+  local distributedWeightedWidth = 0
+
+  -- Second pass: Distribute width for weighted children
+  for _, child in ipairs(weightedChildren) do
+    local childModifier = child.modifier or {properties = {}}
+    local weight = childModifier.properties.weight
+    if totalWeight > 0 then
+      local calculatedWidth = math.floor((weight / totalWeight) * remainingWidth)
+      child.width = calculatedWidth -- Assign calculated width to child
+      distributedWeightedWidth = distributedWeightedWidth + calculatedWidth
+    end
   end
+
+  -- Adjust remainingWidth for any rounding errors in distributedWeightedWidth
+  remainingWidth = remainingWidth - distributedWeightedWidth
 
   local totalChildrenWidth = 0
   for _, child in ipairs(self.children) do
-    local childWidth = (child.modifier and child.modifier.properties.fillMaxWidth) and fillWidth or (child.width or 0)
-    totalChildrenWidth = totalChildrenWidth + childWidth
+    totalChildrenWidth = totalChildrenWidth + (child.width or 0)
   end
 
   local remainingSpace = innerWidth - totalChildrenWidth
@@ -131,8 +146,14 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
 
   local currentX = innerX + startOffset
   for i, child in ipairs(self.children) do
-    local childWidth = (child.modifier and child.modifier.properties.fillMaxWidth) and fillWidth or (child.width or 0)
+    local childWidth = (child.modifier and child.modifier.properties.fillMaxWidth) and innerWidth or (child.width or 0)
     local childHeight = (child.modifier and child.modifier.properties.fillMaxHeight) and innerHeight or (child.height or innerHeight)
+
+    -- If child has weight, its width is already calculated and assigned in the second pass.
+    -- So, we should use child.width directly here.
+    if child.modifier and child.modifier.properties.weight then
+      childWidth = child.width
+    end
 
     local childY = innerY
     if self.verticalAlignment == self.props._compose.VerticalAlignment.Center then

@@ -1,3 +1,4 @@
+---
 --- @class Modifier
 --- A chainable object used to apply styling and behavior to a component.
 --- @field properties table A table holding all the modifier properties.
@@ -8,6 +9,7 @@
 --- @field properties.fillMaxWidth? boolean Whether the component should fill the maximum width.
 --- @field properties.fillMaxHeight? boolean Whether the component should fill the maximum height.
 --- @field properties.onClick? fun() The function to call when the component is clicked.
+--- @field properties.weight? number The weight of the component for space distribution in Row/Column.
 local Modifier = {}
 Modifier.__index = Modifier
 
@@ -95,6 +97,18 @@ end
 --- @return Modifier The Modifier instance for chaining.
 function Modifier:clickable(onClick)
   self.properties.onClick = onClick
+  return self
+end
+
+--- Assigns a weight to the component for space distribution within a Row or Column.
+--- @param weight number The weight value. Must be a positive number.
+--- @return Modifier The Modifier instance for chaining.
+function Modifier:weight(weight)
+  if type(weight) == "number" and weight > 0 then
+    self.properties.weight = weight
+  else
+    error("Weight must be a positive number.")
+  end
   return self
 end
 

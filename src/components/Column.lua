@@ -20,7 +20,7 @@ function Column:new(props)
   --- @class Column : Component
   local instance = Component:new(props)
   setmetatable(instance, self)
-  instance.verticalArrangement = props.verticalArrangement or props._compose.Arrangement.Top -- Explicitly set default to Top
+  instance.verticalArrangement = props.verticalArrangement
   instance.horizontalAlignment = props.horizontalAlignment or props._compose.HorizontalAlignment.Start
 
   local maxChildWidth = 0
@@ -74,6 +74,38 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
   local innerWidth = self.width - padding.left - padding.right - (border.width * 2)
   local innerHeight = self.height - padding.top - padding.bottom - (border.width * 2)
 
+  local totalUnweightedHeight = 0
+  local totalWeight = 0
+  local weightedChildren = {}
+
+  -- First pass: Calculate total unweighted height and total weight
+  for _, child in ipairs(self.children) do
+    local childModifier = child.modifier or {properties = {}}
+    if childModifier.properties.weight then
+      totalWeight = totalWeight + childModifier.properties.weight
+      table.insert(weightedChildren, child)
+    else
+      totalUnweightedHeight = totalUnweightedHeight + (child.height or 1)
+    end
+  end
+
+  local remainingHeight = innerHeight - totalUnweightedHeight
+  local distributedWeightedHeight = 0
+
+  -- Second pass: Distribute height for weighted children
+  for _, child in ipairs(weightedChildren) do
+    local childModifier = child.modifier or {properties = {}}
+    local weight = childModifier.properties.weight
+    if totalWeight > 0 then
+      local calculatedHeight = math.floor((weight / totalWeight) * remainingHeight)
+      child.height = calculatedHeight -- Assign calculated height to child
+      distributedWeightedHeight = distributedWeightedHeight + calculatedHeight
+    end
+  end
+
+  -- Adjust remainingHeight for any rounding errors in distributedWeightedHeight
+  remainingHeight = remainingHeight - distributedWeightedHeight
+
   local totalChildrenHeight = 0
   for _, child in ipairs(self.children) do
     totalChildrenHeight = totalChildrenHeight + (child.height or 1)
@@ -103,6 +135,12 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
     local childHeight = (child.modifier and child.modifier.properties.fillMaxHeight) and innerHeight or (child.height or innerHeight)
     local childWidth = (child.modifier and child.modifier.properties.fillMaxWidth) and innerWidth or (child.width or innerWidth)
 
+    -- If child has weight, its height is already calculated and assigned in the second pass.
+    -- So, we should use child.height directly here.
+    if child.modifier and child.modifier.properties.weight then
+      childHeight = child.height
+    end
+
     local childX = innerX
     if self.horizontalAlignment == self.props._compose.HorizontalAlignment.Center then
       childX = innerX + math.floor((innerWidth - childWidth) / 2)
@@ -122,6 +160,14 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
 
   if effectiveBackground then
     monitor.setBackgroundColor(originalBackground)
+  end
+
+  if self.onDrawn then
+    self:onDrawn()
+  end
+
+  if self.onLaunched then
+    table.insert(launchedEffects, self.onLaunched)
   end
 
   return launchedEffects
