@@ -119,14 +119,20 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
   local remainingHeight = innerHeight - totalUnweightedHeight
   local distributedWeightedHeight = 0
 
+  -- Ensure remainingHeight is not negative before distributing
+  if remainingHeight < 0 then
+      remainingHeight = 0
+  end
+
   -- Second pass: Distribute height for weighted children
   for _, child in ipairs(weightedChildren) do
     local childModifier = child.modifier or {properties = {}}
     local weight = childModifier.properties.weight
     if totalWeight > 0 then
       local calculatedHeight = math.floor((weight / totalWeight) * remainingHeight)
-      child.height = calculatedHeight -- Assign calculated height to child
-      distributedWeightedHeight = distributedWeightedHeight + calculatedHeight
+      -- Ensure calculatedHeight is not negative
+      child.height = math.max(0, calculatedHeight) -- Assign calculated height to child
+      distributedWeightedHeight = distributedWeightedHeight + child.height
     end
   end
 

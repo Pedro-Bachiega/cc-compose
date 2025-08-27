@@ -120,14 +120,20 @@ function Row:draw(x, y, monitor, availableWidth, availableHeight)
   local remainingWidth = innerWidth - totalUnweightedWidth
   local distributedWeightedWidth = 0
 
+  -- Ensure remainingWidth is not negative before distributing
+  if remainingWidth < 0 then
+      remainingWidth = 0
+  end
+
   -- Second pass: Distribute width for weighted children
   for _, child in ipairs(weightedChildren) do
     local childModifier = child.modifier or { properties = {} }
     local weight = childModifier.properties.weight
     if totalWeight > 0 then
       local calculatedWidth = math.floor((weight / totalWeight) * remainingWidth)
-      child.width = calculatedWidth -- Assign calculated width to child
-      distributedWeightedWidth = distributedWeightedWidth + calculatedWidth
+      -- Ensure calculatedWidth is not negative
+      child.width = math.max(0, calculatedWidth) -- Assign calculated width to child
+      distributedWeightedWidth = distributedWeightedWidth + child.width
     end
   end
 

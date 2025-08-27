@@ -4,14 +4,32 @@ local Component = require("compose.src.core.Component")
 --- A component for displaying text.
 --- @field textColor? number The color of the text.
 --- @field textScale? number The scale of the text.
+--- @field maxLines? number The maximum number of lines to display before truncating or ellipsizing.
+--- @field ellipsize? boolean If true, adds "..." to the end of the last line if text overflows maxLines or availableWidth.
 local Text = Component:new()
 Text.__index = Text
+
+local function wrapText(text, availableWidth, textScale)
+    local lines = {}
+    local charsPerLine = math.floor(availableWidth / textScale)
+    if charsPerLine <= 0 then return {""} end -- Handle cases where no chars fit
+
+    local currentText = text
+    while #currentText > 0 do
+        local line = string.sub(currentText, 1, charsPerLine)
+        table.insert(lines, line)
+        currentText = string.sub(currentText, charsPerLine + 1)
+    end
+    return lines
+end
 
 --- Creates a new Text instance.
 --- @param props table A table of properties for the component.
 --- @param props.text? string The text to display.
 --- @param props.textColor? number The color of the text.
 --- @param props.textScale? number The scale of the text.
+--- @param props.maxLines? number The maximum number of lines to display.
+--- @param props.ellipsize? boolean If true, adds "..." to the end of the last line if text overflows.
 --- @param props.modifier? Modifier A Modifier instance to apply to the component.
 --- @return Text A new Text instance.
 function Text:new(props)
@@ -20,6 +38,8 @@ function Text:new(props)
   setmetatable(instance, self)
   instance.textColor = props.textColor or colors.white
   instance.textScale = props.textScale or 1
+  instance.maxLines = props.maxLines
+  instance.ellipsize = props.ellipsize
 
   local textContent = tostring(props.text or "")
   instance.width = #textContent * (instance.textScale or 1)
@@ -63,18 +83,52 @@ function Text:draw(x, y, monitor, availableWidth, availableHeight)
     monitor.setTextColor(effectiveTextColor)
   end
 
-  monitor.setCursorPos(x, y)
-  local textToDraw = text
   local effectiveTextScale = self.textScale or 1
+  local maxLines = self.maxLines or math.huge -- Default to no max lines
+  local ellipsize = self.ellipsize or false
 
-  -- Calculate the maximum number of characters that can fit within availableWidth
-  local maxChars = math.floor(availableWidth / effectiveTextScale)
+  local wrappedLines = wrapText(text, availableWidth, effectiveTextScale)
+  local linesToDraw = {}
 
-  -- Truncate text if it exceeds the calculated maximum characters
-  if #textToDraw > maxChars then
-    textToDraw = string.sub(textToDraw, 1, maxChars)
+  -- Apply maxLines and ellipsize
+  for i, line in ipairs(wrappedLines) do
+      if i > maxLines then
+          break
+      end
+      table.insert(linesToDraw, line)
   end
-  monitor.write(textToDraw)
+
+  -- Handle ellipsizing
+  if ellipsize and #wrappedLines > maxLines then
+      local lastLineIndex = #linesToDraw
+      if lastLineIndex > 0 then
+          local lastLine = linesToDraw[lastLineIndex]
+          local ellipsis = "..."
+          local charsPerLine = math.floor(availableWidth / effectiveTextScale)
+          if #lastLine + #ellipsis > charsPerLine then
+              lastLine = string.sub(lastLine, 1, charsPerLine - #ellipsis) .. ellipsis
+          else
+              lastLine = lastLine .. ellipsis
+          end
+          linesToDraw[lastLineIndex] = lastLine
+      end
+  end
+
+  -- Draw lines
+  local currentY = y
+  for i, line in ipairs(linesToDraw) do
+      if currentY >= y + availableHeight then break end -- Don't draw outside availableHeight
+      monitor.setCursorPos(x, currentY)
+      monitor.write(line)
+      currentY = currentY + effectiveTextScale -- Move to next line, considering text scale
+  end
+
+  -- Update self.height based on actual drawn lines
+  self.height = math.min(availableHeight, #linesToDraw * effectiveTextScale)
+  if self.props.modifier and self.props.modifier.properties.fillMaxHeight then
+      self.height = availableHeight
+  end
+
 
   monitor.setBackgroundColor(originalBackgroundColor)
   monitor.setTextColor(originalTextColor)
