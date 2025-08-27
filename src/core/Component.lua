@@ -32,10 +32,7 @@ function Component:new(className, props)
   local instance = setmetatable({}, self)
   instance.className = className
   instance.props = props
-  instance.children = {}
-  if props.children then
-    instance.children = props.children
-  end
+  instance.children = props.children or {}
   instance.x = 0
   instance.y = 0
   instance.width = 0
@@ -45,7 +42,6 @@ function Component:new(className, props)
   instance.backgroundColor = props.backgroundColor
   instance.modifier = props.modifier
   instance.tag = props.tag
-  instance.className = props.className -- Add className field
 
   -- Transfer onClick from modifier to instance if present
   if instance.modifier and instance.modifier.properties and instance.modifier.properties.onClick then

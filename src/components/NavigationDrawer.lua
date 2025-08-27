@@ -10,7 +10,7 @@ local Component = require("compose.src.core.Component")
 --- @field drawerContentHeight number The calculated height of the drawer content.
 --- @field contentWidth number The calculated width of the main content.
 --- @field contentHeight number The calculated height of the main content.
-local NavigationDrawer = Component:new()
+local NavigationDrawer = Component:new("NavigationDrawer", {})
 NavigationDrawer.__index = NavigationDrawer
 
 --- Creates a new NavigationDrawer instance.
@@ -36,26 +36,12 @@ function NavigationDrawer:new(props)
     end
 
     -- Calculate drawerContent size
-    local drawerChildren = type(instance.drawerContent) == "table" and instance.drawerContent or {instance.drawerContent}
-    local maxDrawerChildWidth = 0
-    local totalDrawerChildrenHeight = 0
-    for _, child in ipairs(drawerChildren) do
-        maxDrawerChildWidth = math.max(maxDrawerChildWidth, child.width or 0)
-        totalDrawerChildrenHeight = totalDrawerChildrenHeight + (child.height or 1)
-    end
-    instance.drawerContentWidth = maxDrawerChildWidth
-    instance.drawerContentHeight = totalDrawerChildrenHeight
+    instance.drawerContentWidth = instance.drawerContent.width or 0
+    instance.drawerContentHeight = instance.drawerContent.height or 1
 
     -- Calculate content size
-    local contentChildren = type(instance.content) == "table" and instance.content or {instance.content}
-    local maxContentChildWidth = 0
-    local totalContentChildrenHeight = 0
-    for _, child in ipairs(contentChildren) do
-        maxContentChildWidth = math.max(maxContentChildWidth, child.width or 0)
-        totalContentChildrenHeight = totalContentChildrenHeight + (child.height or 1)
-    end
-    instance.contentWidth = maxContentChildWidth
-    instance.contentHeight = totalContentChildrenHeight
+    instance.contentWidth = instance.content.width or 0
+    instance.contentHeight = instance.content.height or 1
 
     return instance
 end
@@ -76,29 +62,25 @@ function NavigationDrawer:draw(x, y, monitor, availableWidth, availableHeight)
 
     local drawerOpen = self.isOpen and self.isOpen:get()
 
-    local drawerActualWidth = 0
-    local contentActualX = x
-    local contentActualWidth = availableWidth
+    -- Drawer width is 40% of the available width OR its largest child, whichever is smaller, down to a minimum of 20% of the available width
+    local drawerActualWidth = math.min(math.floor(availableWidth * 0.4),
+        math.max(self.drawerContentWidth, math.floor(availableWidth * 0.2)))
+    -- Ensure drawerActualWidth is at least 1 to avoid division by zero or negative width
+    drawerActualWidth = math.max(1, drawerActualWidth)
+
+    local contentActualWidth = availableWidth - drawerActualWidth
+    -- Ensure contentActualWidth is at least 1
+    contentActualWidth = math.max(1, contentActualWidth)
 
     if drawerOpen then
-        -- Drawer takes up 40% of the available width
-        drawerActualWidth = math.floor(availableWidth * 0.4)
-        -- Ensure drawerActualWidth is at least 1 to avoid division by zero or negative width
-        drawerActualWidth = math.max(1, drawerActualWidth)
-
         -- Draw drawer content
         local childEffects = self.drawerContent:draw(x, y, monitor, drawerActualWidth, availableHeight)
         for _, effect in ipairs(childEffects) do
             table.insert(launchedEffects, effect)
         end
-
-        -- Adjust main content position and width
-        contentActualX = x + drawerActualWidth
-        contentActualWidth = availableWidth - drawerActualWidth
-        -- Ensure contentActualWidth is at least 0
-        contentActualWidth = math.max(0, contentActualWidth)
     end
 
+    local contentActualX = x + drawerActualWidth
     -- Draw the main content
     local childEffects = self.content:draw(contentActualX, y, monitor, contentActualWidth, availableHeight)
     for _, effect in ipairs(childEffects) do

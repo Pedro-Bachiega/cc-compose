@@ -4,7 +4,7 @@ local Component = require("compose.src.core.Component")
 --- A layout component that arranges its children in a horizontal sequence.
 --- @field horizontalArrangement Arrangement The horizontal arrangement of the children.
 --- @field verticalAlignment VerticalAlignment The vertical alignment of the children.
-local Row = Component:new()
+local Row = Component:new("Row", {})
 Row.__index = Row
 
 --- Creates a new Row instance.

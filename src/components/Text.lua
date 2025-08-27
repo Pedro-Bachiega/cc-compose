@@ -6,7 +6,7 @@ local Component = require("compose.src.core.Component")
 --- @field textScale? number The scale of the text.
 --- @field maxLines? number The maximum number of lines to display before truncating or ellipsizing.
 --- @field ellipsize? boolean If true, adds "..." to the end of the last line if text overflows maxLines or availableWidth.
-local Text = Component:new()
+local Text = Component:new("Text", {})
 Text.__index = Text
 
 local function wrapText(text, availableWidth, textScale)

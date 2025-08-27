@@ -109,8 +109,7 @@ function App:findClickedComponent(component, touchX, touchY)
 
   if self:isInside(component, touchX, touchY) then
     if component.className == "NavigationDrawer" then
-      table.insert(children, table.unpack(component.drawerContent))
-      table.insert(children, table.unpack(component.content))
+      children = {component.drawerContent, component.content}
     end
 
     for i = #children, 1, -1 do

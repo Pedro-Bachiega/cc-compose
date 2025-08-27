@@ -5,7 +5,7 @@ local Component = require("compose.src.core.Component")
 --- @field text string The text to display below the animation.
 --- @field animationIndex number The index of the current animation character.
 --- @field animationFrames table An array of 3x3 matrices for animation.
-local ProgressBar = Component:new()
+local ProgressBar = Component:new("ProgressBar", {})
 ProgressBar.__index = ProgressBar
 
 --- Creates a new Loading instance.

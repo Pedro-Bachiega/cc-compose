@@ -2,7 +2,7 @@ local Component = require("compose.src.core.Component")
 
 --- @class Spacer : Component
 --- A component for creating empty space. Its size is determined by the modifier applied to it.
-local Spacer = Component:new()
+local Spacer = Component:new("Spacer", {})
 Spacer.__index = Spacer
 
 --- Creates a new Spacer instance.

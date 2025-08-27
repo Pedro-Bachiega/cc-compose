@@ -4,7 +4,7 @@ local Component = require("compose.src.core.Component")
 --- A layout component that arranges its children in a vertical sequence.
 --- @field verticalArrangement Arrangement The vertical arrangement of the children.
 --- @field horizontalAlignment HorizontalAlignment The horizontal alignment of the children.
-local Column = Component:new()
+local Column = Component:new("Column", {})
 Column.__index = Column
 
 --- Creates a new Column instance.
@@ -101,6 +101,37 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
   innerWidth = math.max(0, innerWidth)
   innerHeight = math.max(0, innerHeight)
 
+  --- @param component Component
+  local function measureHeight(component)
+    if not component then return 0 end
+    local mod = component.modifier and component.modifier.properties or {}
+    if mod.height then return mod.height end
+    if mod.weight then return 0 end -- Weighted components don't have a pre-defined height
+
+    local h = 0
+    if component.className == "Column" then
+        if component.children then
+            for _, c in ipairs(component.children) do
+                h = h + measureHeight(c)
+            end
+            if component.verticalArrangement == component.props._compose.Arrangement.SpacedBy and #component.children > 1 then
+                h = h + (component.props.spacing or 0) * (#component.children - 1)
+            end
+        end
+    elseif component.className == "Row" then
+        if component.children then
+            local maxH = 0
+            for _, c in ipairs(component.children) do
+                maxH = math.max(maxH, measureHeight(c))
+            end
+            h = maxH
+        end
+    else
+        h = component.height or 1
+    end
+    return h
+  end
+
   local totalUnweightedHeight = 0
   local totalWeight = 0
   local weightedChildren = {}
@@ -112,7 +143,7 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
       totalWeight = totalWeight + childModifier.properties.weight
       table.insert(weightedChildren, child)
     else
-      totalUnweightedHeight = totalUnweightedHeight + (child.height or 1)
+      totalUnweightedHeight = totalUnweightedHeight + measureHeight(child)
     end
   end
 
@@ -173,6 +204,9 @@ function Column:draw(x, y, monitor, availableWidth, availableHeight)
     elseif mod.fillMaxWidth then
       childWidth = innerWidth
     end
+
+    -- Ensure childWidth does not cause overflow to the right
+    childWidth = math.min(math.max(0, childWidth), innerWidth)
 
     local childHeight = child.height or 1
     if mod.height then

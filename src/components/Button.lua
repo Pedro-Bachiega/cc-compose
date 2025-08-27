@@ -4,7 +4,7 @@ local Component = require("compose.src.core.Component")
 --- A clickable button component.
 --- @field textColor? number The color of the button text.
 --- @field textScale? number The scale of the button text.
-local Button = Component:new()
+local Button = Component:new("Button", {})
 Button.__index = Button
 
 --- Creates a new Button instance.
